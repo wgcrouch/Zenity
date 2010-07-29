@@ -1,0 +1,26 @@
+Simple class to allow a CLI script to use Zenity for user input and notifications. 
+
+Example use:
+
+<?php 
+
+require_once 'Zenity.php';
+
+$zenity = new Zenity();
+
+$zenity->showError('This is an Error', 'Error');
+
+$zenity->showInfo('This is an info box', 'Info');
+
+//Get a file path using a file dialogue
+$path =  $zenity->getFile('Please Select a file', 'Select File');
+print "You selected $path";
+
+//Getting Multiple File Paths:
+$paths =  $zenity->getFile('Please Select files', 'Select Files', array('multiple'=>''));
+print "You selected implode(', ', $paths)";
+
+//Get a date using a calendar:
+$date =  $zenity->getDate('Please Select Datee', 'Select Date');
+print "You selected $date";
+
