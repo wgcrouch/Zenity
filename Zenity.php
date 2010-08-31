@@ -66,6 +66,30 @@ class Zenity
         $this->executeBasic('info', $text, $title, false, $params);
     }
 
+     /**
+     * Show an Display text information dialog.
+     *
+     * This allows the text of a file to be displayed, and edited.
+     *
+     * @param string  $filename The file to display
+     * @param string  $title    The text to show in the title bar
+     * @param boolean $editable If set to true the text will be editable and the
+     *                          changed text will be returned. TODO: Fix the output
+     * @param array   $params   Any extra params you wish to set
+     *
+     * @return void|string
+     */
+    public function showTextInfo($filename, $title = 'Text View', $editable = false, $params = array())
+    {
+        $params['filename'] = $filename;
+        $return = false;
+        if ($editable) {
+            $return = true;
+            $params['editable'] = null;
+        }
+        return $this->executeBasic('text-info', '', $title, $return, $params);
+    }
+
     /**
      * Get a text value from the user
      *
@@ -101,16 +125,52 @@ class Zenity
      * @param boolean $multiple If true allow multiple files to be selected
      * @param array   $params   Any extra params
      *
-     * @return array  array of paths
+     * @return array
      */
     public function getFile($title, $multiple = false, $params = array())
     {
         if ($multiple) {
             $params['multiple'] = null;
         }
-        return $this->executeBasic('file-selection', null, $title, true, $params);
+        $result =  $this->executeBasic('file-selection', null, $title, true, $params);
+
+
+        $result = explode('|', $result);
+
+        return $result;
     }
 
+
+    const LIST_RADIO = 'radiolist';
+    const LIST_CHECKLIST = 'checklist';
+
+    public function showList($text = 'Select', $title = 'List', $data = array(), $type = null, $params = array())
+    {
+        $append = '';
+        $columns = array_keys($data[0]);
+        $values = '';
+        foreach ($data as $row) {
+            $values .= ' ';
+            foreach ($row as $value) {
+                $values .= escapeshellarg($value) . " ";
+            }
+            $values .= "\n";
+        }
+
+        foreach ($columns as $column) {
+            $append .= ' --column=' . escapeshellarg(ucfirst($column)) . "\n";
+        }
+
+        $append .= $values;
+        if ($type) {
+            $params[$type] = null;
+        }
+
+
+        $result =  $this->executeBasic('list', $text, $title, true, $params, $append);
+
+        return $result;
+    }
 
     /**
      * Run zenity with a basic action that does not require any communucation with
@@ -121,10 +181,11 @@ class Zenity
      * @param string  $title  The title to show
      * @param boolean $return whether to return a value or not
      * @param array   $params Any extra params to send
+     * @param string  $append Any extra stuff to append to the command
      * 
      * @return string
      */
-    public function executeBasic($action, $text, $title, $return = false, $params = array())
+    public function executeBasic($action, $text, $title, $return = false, $params = array(), $append = null)
     {
         $default_params = array(
             $action => null,
@@ -133,7 +194,8 @@ class Zenity
         );
 
         $params = array_merge($params, $default_params);
-        $cmd = $this->buildCommandFromParams($params, $return);
+        $cmd = $this->buildCommandFromParams($params, $append, $return);
+        print $cmd;
         return exec($cmd);
     }
 
@@ -191,11 +253,12 @@ class Zenity
      *
      * @param array   $params Array of params in the format param => value,
      *                        if no value, then set null
+     * @param string  $append Any extra stuff to append to the command
      * @param boolean $return Whethe the command should return or not
      * 
      * @return string
      */
-    protected function buildCommandFromParams($params, $return = false)
+    protected function buildCommandFromParams($params, $append = null,  $return = false)
     {
         $cmd = $this->path;
 
@@ -205,11 +268,12 @@ class Zenity
                 $cmd .= '=' . escapeshellarg($val);
             }
         }
-
+        $cmd .= ' ' . $append;
+        $cmd = escapeshellcmd($cmd);
         if ($return) {
             $cmd .= ' 2>&1';
         }
-        return escapeshellcmd($cmd);
+        return $cmd;
     }
 }
 
